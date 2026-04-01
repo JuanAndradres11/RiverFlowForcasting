@@ -9,6 +9,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'catchment', label: 'Catchment-Wise Forecast', icon: Globe },
+    { id: 'map', label: 'Catchment Map', icon: Globe },
     { id: 'model', label: 'Model Insights', icon: Brain },
     { id: 'trends', label: 'Historical Trends', icon: TrendingUp },
     { id: 'settings', label: 'Settings', icon: Settings }

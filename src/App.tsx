@@ -6,8 +6,9 @@ import { ModelInsights } from './pages/ModelInsights';
 import { HistoricalTrends } from './pages/HistoricalTrends';
 import { Settings } from './pages/Settings';
 import { Sidebar } from './components/Sidebar';
+import CatchmentMapPage from './pages/CatchmentMapPage';  
 
-type Page = 'landing' | 'overview' | 'catchment' | 'model' | 'trends' | 'settings';
+type Page = 'landing' | 'overview' | 'catchment' | 'model' | 'trends' | 'settings'| 'map';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('landing');
@@ -33,6 +34,7 @@ function App() {
         {currentPage === 'model' && <ModelInsights />}
         {currentPage === 'trends' && <HistoricalTrends />}
         {currentPage === 'settings' && <Settings />}
+        {currentPage === 'map' && <CatchmentMapPage />}
       </main>
     </div>
   );

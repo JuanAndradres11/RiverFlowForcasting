@@ -1,34 +1,45 @@
 import MapView from "../components/MapView";
 import ErrorBoundary from "../components/ErrorBoundary";
+import CatchmentTabs from "../components/CatchmentTabs";
 
 export default function CatchmentMapPage() {
   return (
     <div className="p-6 space-y-6">
-      
-      {/* HEADER */}
+
+      {/* 🔹 HEADER */}
       <div>
         <h1 className="text-2xl font-bold">Catchment Map</h1>
         <p className="text-slate-500">
-          Visualize river basin, catchment regions, and forecast distribution
+          Visualize Cauvery basin, monitor catchments, and explore hydrological data
         </p>
       </div>
 
-      {/* MAP CARD */}
-      <div className="bg-white rounded-xl shadow p-4 space-y-4">
-        <h2 className="text-lg font-semibold">Cauvery Basin Overview</h2>
+      {/* 🔹 MAIN GRID (MAP + TABS) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <ErrorBoundary>
-          <MapView />
-        </ErrorBoundary>
+        {/* 🗺️ MAP SECTION */}
+        <div className="lg:col-span-2 bg-white rounded-xl shadow p-4 space-y-4">
+          <h2 className="text-lg font-semibold">Cauvery Basin Overview</h2>
 
-        {/* fallback description */}
-        <p className="text-sm text-slate-500">
-          The map displays the Cauvery river basin along with key catchment regions.
-          Select a catchment to view forecast data and hydrological insights.
-        </p>
+          <ErrorBoundary>
+            <div className="h-[500px]">
+              <MapView />
+            </div>
+          </ErrorBoundary>
+
+          <p className="text-sm text-slate-500">
+            Explore the Cauvery river basin. Toggle layers to view dams and catchments.
+          </p>
+        </div>
+
+        {/* 📊 TABS PANEL */}
+        <div className="bg-white rounded-xl shadow p-4">
+          <CatchmentTabs />
+        </div>
+
       </div>
 
-      {/* INFO CARDS */}
+      {/* 🔹 STATS CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
         <div className="bg-white rounded-xl shadow p-4">
@@ -48,12 +59,12 @@ export default function CatchmentMapPage() {
 
       </div>
 
-      {/* SELECTED CATCHMENT PANEL */}
+      {/* 🔹 INFO PANEL */}
       <div className="bg-white rounded-xl shadow p-4">
-        <h2 className="text-lg font-semibold">Catchment Details</h2>
+        <h2 className="text-lg font-semibold">Catchment Insights</h2>
         <p className="text-slate-500 text-sm">
-          Click on a catchment in the map to view detailed prediction metrics,
-          including discharge, error %, and historical comparison.
+          This panel will display detailed analytics for selected catchments,
+          including predicted discharge, historical comparison, and anomaly detection.
         </p>
       </div>
 

@@ -1,10 +1,12 @@
-import { useState } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
   Popup,
-  Polyline,
+  GeoJSON,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -18,21 +20,10 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-// 🌍 Cauvery bounds (REAL from doc)
+// 🌍 Cauvery bounds
 const cauveryBounds: [[number, number], [number, number]] = [
-  [10.15, 75.45], // SW
-  [13.5, 79.9],   // NE
-];
-
-// 🌊 River path (approx for now)
-const cauveryPath: [number, number][] = [
-  [12.4, 75.9],
-  [12.1, 76.2],
-  [11.8, 76.5],
-  [11.5, 77.0],
-  [11.0, 77.8],
-  [10.5, 78.5],
-  [10.0, 79.5],
+  [10.15, 75.45],
+  [13.5, 79.9],
 ];
 
 // 📍 Catchments
@@ -52,6 +43,20 @@ const dams = [
 export default function MapView() {
   const [showCatchments, setShowCatchments] = useState(true);
   const [showDams, setShowDams] = useState(false);
+  const [riverData, setRiverData] = useState<any>(null);
+
+  // 🚀 Load GeoJSON
+  useEffect(() => {
+    fetch("src/data/cauvery_clean.geojson")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("✅ River loaded:", data);
+        setRiverData(data);
+      })
+      .catch((err) => {
+        console.error("❌ Failed to load GeoJSON:", err);
+      });
+  }, []);
 
   return (
     <div className="space-y-3">
@@ -88,11 +93,17 @@ export default function MapView() {
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        {/* 🌊 River */}
-        <Polyline
-          positions={cauveryPath}
-          pathOptions={{ color: "#2563eb", weight: 5 }}
-        />
+        {/* 🌊 REAL River */}
+        {riverData && (
+          <GeoJSON
+            data={riverData}
+            style={{
+              color: "#00bfff",
+              weight: 5,
+              opacity: 0.9,
+            }}
+          />
+        )}
 
         {/* 📍 Catchments */}
         {showCatchments &&

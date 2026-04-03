@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { Download, Search, Filter } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { supabase, Catchment, Prediction } from '../lib/supabase';
+import { DataSourceIndicator, FailSafeAlert } from '../components/DataSourceIndicator';
+import { riverDataStore } from '../data/riverDataStore';
+import { loadFrozenData, CSVRecord } from '../utils/csvLoader';
+import { Catchment, Prediction } from '../lib/supabase';
 
 export function CatchmentForecast() {
   const [catchments, setCatchments] = useState<Catchment[]>([]);
@@ -13,6 +16,9 @@ export function CatchmentForecast() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<'date' | 'error_percentage'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [csvData, setCSVData] = useState<CSVRecord[]>([]);
+  const [usingCSV, setUsingCSV] = useState(false);
+  const [dataDate, setDataDate] = useState<string>('');
 
   useEffect(() => {
     loadData();
@@ -20,42 +26,113 @@ export function CatchmentForecast() {
 
   useEffect(() => {
     loadPredictions();
-  }, [selectedCatchment]);
+  }, [selectedCatchment, csvData]);
 
   useEffect(() => {
     filterAndSortPredictions();
   }, [predictions, searchTerm, sortField, sortOrder]);
 
   const loadData = async () => {
-    const { data } = await supabase
-      .from('catchments')
-      .select('*')
-      .order('id');
+    try {
+      // Try to load CSV data first
+      const csvRecords = await loadFrozenData();
 
-    if (data) {
-      setCatchments(data);
+      if (csvRecords.length > 0) {
+        setCSVData(csvRecords);
+        setUsingCSV(true);
+
+        // Extract unique catchments from CSV
+        const catchmentMap = new Map<string, any>();
+        csvRecords.forEach((r) => {
+          if (!catchmentMap.has(r.catchment_id)) {
+            catchmentMap.set(r.catchment_id, {
+              id: r.catchment_id,
+              name: r.catchment_name,
+              lat: r.lat,
+              lng: r.lng,
+            });
+          }
+        });
+
+        const transformedCatchments: Catchment[] = Array.from(catchmentMap.values()).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          river_name: 'Cauvery',
+          location: c.name,
+          latitude: c.lat,
+          longitude: c.lng,
+          area_sq_km: 1000,
+          created_at: new Date().toISOString(),
+        }));
+
+        setCatchments(transformedCatchments);
+
+        // Get unique dates
+        const uniqueDates = [...new Set(csvRecords.map((r) => r.date))].sort();
+        if (uniqueDates.length > 0) {
+          setDataDate(uniqueDates[uniqueDates.length - 1]);
+        }
+      } else {
+        throw new Error('CSV returned 0 records');
+      }
+    } catch (error) {
+      console.warn('CSV load failed, using riverDataStore fallback:', error);
+      setUsingCSV(false);
+
+      // Fallback: Use riverDataStore
+      const fallbackCatchments: Catchment[] = riverDataStore.catchments.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        river_name: 'Cauvery',
+        location: c.name,
+        latitude: c.lat,
+        longitude: c.lng,
+        area_sq_km: 1000,
+        created_at: new Date().toISOString(),
+      }));
+      setCatchments(fallbackCatchments);
+      setDataDate(riverDataStore.metadata.lastUpdated);
     }
   };
 
-  const loadPredictions = async () => {
+  const loadPredictions = () => {
     setLoading(true);
 
-    let query = supabase
-      .from('predictions')
-      .select('*');
+    let records: any[] = [];
 
-    if (selectedCatchment !== 'all') {
-      query = query.eq('catchment_id', selectedCatchment);
+    if (csvData.length > 0) {
+      // Use CSV data
+      records = csvData;
+      if (selectedCatchment !== 'all') {
+        records = records.filter((r) => r.catchment_id === selectedCatchment);
+      }
+    } else if (usingCSV === false) {
+      // Fallback: Use riverDataStore
+      records = riverDataStore.history.records;
+      if (selectedCatchment !== 'all') {
+        records = records.filter((r: any) => r.catchmentId === selectedCatchment);
+      }
     }
 
-    const { data } = await query
-      .order('date', { ascending: false })
-      .limit(500);
+    const transformedPredictions: Prediction[] = records
+      .sort((a: any, b: any) => {
+        const dateA = a.date || a.date;
+        const dateB = b.date || b.date;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      })
+      .slice(0, 500)
+      .map((r: any, idx: number) => ({
+        id: `pred-${r.catchment_id || r.catchmentId}-${r.date}-${idx}`,
+        catchment_id: r.catchment_id || r.catchmentId,
+        date: r.date,
+        actual_flow: r.actual_flow !== undefined ? r.actual_flow : r.actualFlow,
+        predicted_flow: r.predicted_flow !== undefined ? r.predicted_flow : r.predictedFlow,
+        error_percentage: r.error_percentage,
+        model_version: r.model_version,
+        created_at: new Date().toISOString(),
+      }));
 
-    if (data) {
-      setPredictions(data);
-    }
-
+    setPredictions(transformedPredictions);
     setLoading(false);
   };
 
@@ -128,6 +205,14 @@ export function CatchmentForecast() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Catchment-Wise Forecast</h1>
           <p className="text-gray-600">Detailed prediction data across all monitored catchments</p>
         </div>
+
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <DataSourceIndicator isCSV={usingCSV} recordCount={predictions.length} dataDate={dataDate} />
+          </div>
+        </div>
+
+        {!usingCSV && <FailSafeAlert />}
 
         <Card className="mb-6">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">

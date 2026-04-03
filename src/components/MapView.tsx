@@ -1,6 +1,7 @@
 "use client";
 
 import { catchments, dams } from "../data/mapData";
+import { loadFrozenData, getRecordsForDate, CSVRecord } from "../utils/csvLoader";
 import { useState, useEffect, useRef } from "react";
 import {
   MapContainer,
@@ -34,14 +35,45 @@ function getFlowLabel(flow: number) {
 
 export default function MapView({ mode, selectedId, onSelect }: any) {
   const [riverData, setRiverData] = useState<any>(null);
+  const [csvData, setCSVData] = useState<CSVRecord[]>([]);
+  const [todayCSVData, setTodayCSVData] = useState<CSVRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const mapRef = useRef<any>(null);
 
-  // 🚀 Load river
+  // 🚀 Load river GeoJSON
   useEffect(() => {
     fetch("src/data/cauvery_clean.geojson")
       .then((res) => res.json())
       .then(setRiverData)
       .catch(console.error);
+  }, []);
+
+  // 📊 Load CSV data
+  useEffect(() => {
+    const initCSV = async () => {
+      setLoading(true);
+      try {
+        const records = await loadFrozenData();
+        setCSVData(records);
+
+        if (records.length > 0) {
+          // Get today's date in format YYYY-MM-DD
+          const today = new Date().toISOString().split("T")[0];
+
+          // Get records for today, with fallback to latest date
+          const todayRecords = getRecordsForDate(records, today);
+          setTodayCSVData(todayRecords);
+
+          console.log(`📍 Map: Using ${todayRecords.length} records for ${today}`);
+        }
+      } catch (error) {
+        console.error("Failed to load CSV for map:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initCSV();
   }, []);
 
   // 🎯 Zoom to selected
@@ -56,10 +88,22 @@ export default function MapView({ mode, selectedId, onSelect }: any) {
     }
   }, [selectedId, mode]);
 
-  // ✅ FILTER DATA (THIS FIXES YOUR MAIN ISSUE)
-  const visibleCatchments = selectedId
-    ? catchments.filter((c) => c.id === selectedId)
-    : catchments;
+  // ✅ FILTER DATA FOR DISPLAY
+  // Use CSV data if available, otherwise use mapData
+  const displayCatchments =
+    todayCSVData.length > 0 ? todayCSVData : catchments.map((c) => ({
+      catchment_id: c.id,
+      catchment_name: c.name,
+      lat: c.lat,
+      lng: c.lng,
+      actual_flow: 0,
+      predicted_flow: 0,
+      error_percentage: 0,
+    } as any));
+
+  const visibleCatchmentData = selectedId
+    ? displayCatchments.filter((c: any) => c.catchment_id === selectedId)
+    : displayCatchments;
 
   const visibleDams = selectedId
     ? dams.filter((d) => d.id === selectedId)
@@ -78,6 +122,7 @@ export default function MapView({ mode, selectedId, onSelect }: any) {
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
+
         {/* 🌊 River */}
         {riverData && (
           <GeoJSON
@@ -92,8 +137,10 @@ export default function MapView({ mode, selectedId, onSelect }: any) {
 
         {/* 📍 Catchments */}
         {mode === "catchments" &&
-          visibleCatchments.map((c) => {
-            const isSelected = selectedId === c.id;
+          visibleCatchmentData.map((c: any) => {
+            // Handle both CSV and mapData structures
+            const catchmentId = c.catchment_id || c.id;
+            const isSelected = selectedId === catchmentId;
 
             const icon = L.divIcon({
               className: "",
@@ -110,11 +157,11 @@ export default function MapView({ mode, selectedId, onSelect }: any) {
 
             return (
               <Marker
-                key={c.id}
+                key={catchmentId}
                 position={[c.lat, c.lng]}
                 icon={icon}
                 eventHandlers={{
-                  click: () => onSelect(c.id),
+                  click: () => onSelect(catchmentId),
                 }}
                 ref={(ref) => {
                   if (ref && isSelected) {
@@ -123,10 +170,12 @@ export default function MapView({ mode, selectedId, onSelect }: any) {
                 }}
               >
                 <Popup>
-                  <strong>{c.name}</strong> <br />
-                  📍 {c.lat}, {c.lng} <br />
-                  🌊 {c.prediction} m³/s <br />
-                  ⚠️ {getFlowLabel(c.prediction)}
+                  <strong>{c.catchment_name || c.name}</strong> <br />
+                  📍 {c.lat.toFixed(4)}, {c.lng.toFixed(4)} <br />
+                  💧 Actual: {c.actual_flow?.toFixed(1) || c.prediction || '—'} m³/s <br />
+                  🔮 Predicted: {c.predicted_flow?.toFixed(1) || '—'} m³/s <br />
+                  ⚠️ Error: {c.error_percentage?.toFixed(2) || '—'}% <br />
+                  🌊 {getFlowLabel(c.predicted_flow || c.actual_flow || 0)}
                 </Popup>
               </Marker>
             );

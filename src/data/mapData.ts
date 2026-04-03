@@ -21,9 +21,46 @@ export const catchments = [
   { id: "kodumudi", name: "Kodumudi", lat: 11.0811, lng: 77.8903, prediction: 62 },
   { id: "kokkedoddy", name: "Kokkedoddy", lat: 12.2961, lng: 77.4403, prediction: 47 },
   { id: "kollegal", name: "Kollegal", lat: 12.1892, lng: 77.1000, prediction: 53 },
+
   { id: "kottathara", name: "Kottathara", lat: 11.1231, lng: 76.6794, prediction: 49 },
   { id: "kudige", name: "Kudige", lat: 12.5025, lng: 75.9611, prediction: 44 },
   { id: "kudlur", name: "Kudlur", lat: 11.8406, lng: 77.4628, prediction: 57 },
+  { id: "kukkalthurai", name: "Kukkalthurai", lat: 11.4856, lng: 76.8325, prediction: 51 },
+  { id: "lakshmananpatty", name: "Lakshmananpatty", lat: 10.4981, lng: 77.9458, prediction: 46 },
+
+  { id: "mh_halli", name: "M.H. Halli", lat: 12.8189, lng: 76.1333, prediction: 43 },
+  { id: "menangudi", name: "Menangudi", lat: 10.9489, lng: 79.7039, prediction: 66 },
+  { id: "musiri", name: "Musiri", lat: 10.9433, lng: 78.4350, prediction: 70 },
+  { id: "muthankera", name: "Muthankera", lat: 11.8083, lng: 76.0839, prediction: 54 },
+
+  { id: "nallamaranpatty", name: "Nallamaranpatty", lat: 10.8808, lng: 77.9847, prediction: 63 },
+  { id: "nallathur", name: "Nallathur", lat: 11.0022, lng: 79.7503, prediction: 64 },
+  { id: "napoklu", name: "Napoklu", lat: 12.3142, lng: 75.6983, prediction: 41 },
+
+  { id: "nellithurai", name: "Nellithurai", lat: 11.2878, lng: 76.8911, prediction: 59 },
+  { id: "odandhurai", name: "Odandhurai", lat: 11.3217, lng: 76.8928, prediction: 58 },
+
+  { id: "peralam", name: "Peralam", lat: 10.9664, lng: 79.6614, prediction: 68 },
+  { id: "porakudi", name: "Porakudi", lat: 10.9039, lng: 79.7072, prediction: 69 },
+  { id: "pudunagara", name: "Pudunagara", lat: 12.0700, lng: 77.4100, prediction: 52 },
+
+  { id: "sakleshpur", name: "Sakleshpur", lat: 12.9436, lng: 75.7936, prediction: 37 },
+  { id: "savandapur", name: "Savandapur", lat: 11.5214, lng: 77.5100, prediction: 60 },
+  { id: "sevanur", name: "Sevanur", lat: 11.5519, lng: 77.7319, prediction: 61 },
+
+  { id: "tk_halli", name: "T.K. Halli", lat: 12.4167, lng: 77.1925, prediction: 56 },
+  { id: "tnarsipur", name: "T. Narsipur", lat: 12.2300, lng: 76.8942, prediction: 57 },
+
+  { id: "thandalaiputhur", name: "Thandalaiputhur", lat: 10.9911, lng: 78.5133, prediction: 71 },
+  { id: "thengudi", name: "Thengudi", lat: 10.9167, lng: 79.6389, prediction: 67 },
+  { id: "thengumarahada", name: "Thengumarahada", lat: 11.5728, lng: 76.9192, prediction: 62 },
+
+  { id: "thevur", name: "Thevur", lat: 11.5272, lng: 77.7508, prediction: 63 },
+  { id: "thimmanahalli", name: "Thimmanahalli", lat: 12.9825, lng: 76.0381, prediction: 45 },
+  { id: "thoppur", name: "Thoppur", lat: 11.9383, lng: 78.0572, prediction: 66 },
+
+  { id: "urachikottai", name: "Urachikottai", lat: 11.4778, lng: 77.7000, prediction: 64 },
+  { id: "varanavasi", name: "Varanavasi", lat: 11.0925, lng: 79.0850, prediction: 68 }
 ];
 
 export const dams = [

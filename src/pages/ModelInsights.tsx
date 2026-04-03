@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Brain, Layers, Zap, TrendingDown } from 'lucide-react';
 import { Card } from '../components/Card';
-import { supabase, TrainingHistory } from '../lib/supabase';
+import { riverDataStore } from '../data/riverDataStore';
+import { TrainingHistory } from '../lib/supabase';
 
 export function ModelInsights() {
   const [trainingHistory, setTrainingHistory] = useState<TrainingHistory[]>([]);
@@ -11,16 +12,18 @@ export function ModelInsights() {
     loadTrainingHistory();
   }, []);
 
-  const loadTrainingHistory = async () => {
-    const { data } = await supabase
-      .from('training_history')
-      .select('*')
-      .order('epoch', { ascending: true });
+  const loadTrainingHistory = () => {
+    // Transform riverDataStore training history to Supabase format
+    const transformedHistory: TrainingHistory[] = riverDataStore.model.training.lossHistory.map((entry: any) => ({
+      id: `training-${entry.epoch}`,
+      model_version: 'v1',
+      epoch: entry.epoch,
+      training_loss: entry.trainLoss,
+      validation_loss: entry.valLoss,
+      created_at: new Date().toISOString(),
+    }));
 
-    if (data) {
-      setTrainingHistory(data);
-    }
-
+    setTrainingHistory(transformedHistory);
     setLoading(false);
   };
 

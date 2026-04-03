@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, Calendar } from 'lucide-react';
 import { Card } from '../components/Card';
 import { LineChart } from '../components/LineChart';
-import { supabase, Catchment, Prediction } from '../lib/supabase';
+import { riverDataStore } from '../data/riverDataStore';
+import { Catchment, Prediction } from '../lib/supabase';
 
 export function HistoricalTrends() {
   const [catchments, setCatchments] = useState<Catchment[]>([]);
@@ -21,36 +22,48 @@ export function HistoricalTrends() {
     }
   }, [selectedCatchments, dateRange]);
 
-  const loadCatchments = async () => {
-    const { data } = await supabase
-      .from('catchments')
-      .select('*')
-      .order('id');
+  const loadCatchments = () => {
+    // Transform riverDataStore catchments to Supabase format
+    const transformedCatchments: Catchment[] = riverDataStore.catchments.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      river_name: 'Cauvery',
+      location: c.name,
+      latitude: c.lat,
+      longitude: c.lng,
+      area_sq_km: 1000,
+      created_at: new Date().toISOString(),
+    }));
 
-    if (data) {
-      setCatchments(data);
-    }
+    setCatchments(transformedCatchments);
   };
 
-  const loadPredictions = async () => {
+  const loadPredictions = () => {
     setLoading(true);
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - dateRange);
+    const startDateStr = startDate.toISOString().split('T')[0];
 
     const predictionsData: { [key: string]: Prediction[] } = {};
 
     for (const catchmentId of selectedCatchments) {
-      const { data } = await supabase
-        .from('predictions')
-        .select('*')
-        .eq('catchment_id', catchmentId)
-        .gte('date', startDate.toISOString().split('T')[0])
-        .order('date', { ascending: true });
+      const records = riverDataStore.history.records
+        .filter((r: any) => r.catchmentId === catchmentId && r.date >= startDateStr)
+        .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-      if (data) {
-        predictionsData[catchmentId] = data;
-      }
+      const transformedPredictions: Prediction[] = records.map((r: any, idx: number) => ({
+        id: `pred-${r.catchmentId}-${r.date}-${idx}`,
+        catchment_id: r.catchmentId,
+        date: r.date,
+        actual_flow: r.actualFlow,
+        predicted_flow: r.predictedFlow,
+        error_percentage: r.error_percentage,
+        model_version: r.model_version,
+        created_at: new Date().toISOString(),
+      }));
+
+      predictionsData[catchmentId] = transformedPredictions;
     }
 
     setPredictions(predictionsData);

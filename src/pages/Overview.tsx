@@ -3,7 +3,8 @@ import { Activity, TrendingUp, AlertCircle, Target } from 'lucide-react';
 import { Card } from '../components/Card';
 import { MetricCard } from '../components/MetricCard';
 import { LineChart } from '../components/LineChart';
-import { supabase, Catchment, Prediction, ModelMetrics } from '../lib/supabase';
+import { riverDataStore } from '../data/riverDataStore';
+import { Catchment, Prediction, ModelMetrics } from '../lib/supabase';
 
 export function Overview() {
   const [catchments, setCatchments] = useState<Catchment[]>([]);
@@ -23,45 +24,62 @@ export function Overview() {
     }
   }, [selectedCatchment, dateRange]);
 
-  const loadCatchments = async () => {
-    const { data } = await supabase
-      .from('catchments')
-      .select('*')
-      .order('id');
+  const loadCatchments = () => {
+    // Transform riverDataStore catchments to Supabase format
+    const transformedCatchments: Catchment[] = riverDataStore.catchments.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      river_name: 'Cauvery',
+      location: c.name,
+      latitude: c.lat,
+      longitude: c.lng,
+      area_sq_km: 1000,
+      created_at: new Date().toISOString(),
+    }));
 
-    if (data) {
-      setCatchments(data);
-    }
+    setCatchments(transformedCatchments);
   };
 
-  const loadData = async () => {
+  const loadData = () => {
     setLoading(true);
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - dateRange);
+    const startDateStr = startDate.toISOString().split('T')[0];
 
-    const [predictionsRes, metricsRes] = await Promise.all([
-      supabase
-        .from('predictions')
-        .select('*')
-        .eq('catchment_id', selectedCatchment)
-        .gte('date', startDate.toISOString().split('T')[0])
-        .order('date', { ascending: true }),
-      supabase
-        .from('model_metrics')
-        .select('*')
-        .eq('catchment_id', selectedCatchment)
-        .maybeSingle()
-    ]);
+    // Filter predictions for selected catchment and date range
+    const records = riverDataStore.history.records
+      .filter((r: any) => r.catchmentId === selectedCatchment && r.date >= startDateStr)
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    if (predictionsRes.data) {
-      setPredictions(predictionsRes.data);
-    }
+    const transformedPredictions: Prediction[] = records.map((r: any, idx: number) => ({
+      id: `pred-${r.catchmentId}-${r.date}-${idx}`,
+      catchment_id: r.catchmentId,
+      date: r.date,
+      actual_flow: r.actualFlow,
+      predicted_flow: r.predictedFlow,
+      error_percentage: r.error_percentage,
+      model_version: r.model_version,
+      created_at: new Date().toISOString(),
+    }));
 
-    if (metricsRes.data) {
-      setMetrics(metricsRes.data);
-    }
+    setPredictions(transformedPredictions);
 
+    // Transform model metrics
+    const transformedMetrics: ModelMetrics = {
+      id: `metrics-${selectedCatchment}`,
+      catchment_id: selectedCatchment,
+      model_version: 'v1',
+      nse: riverDataStore.model.metrics.nse,
+      rmse: riverDataStore.model.metrics.rmse,
+      mae: riverDataStore.model.metrics.mae,
+      peak_accuracy: riverDataStore.model.metrics.peakAccuracy,
+      training_epochs: riverDataStore.model.training.epochs,
+      validation_loss: riverDataStore.model.training.finalValLoss,
+      created_at: new Date().toISOString(),
+    };
+
+    setMetrics(transformedMetrics);
     setLoading(false);
   };
 

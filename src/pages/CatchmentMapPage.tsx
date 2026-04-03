@@ -60,8 +60,8 @@ export default function CatchmentMapPage() {
         </div>
 
         <div className="bg-white rounded-xl shadow p-4">
-          <h3 className="text-sm text-slate-500">Active Predictions</h3>
-          <p className="text-xl font-bold">~150</p>
+          <h3 className="text-sm text-slate-500">Monitoring Stations</h3>
+          <p className="text-xl font-bold">44</p>
         </div>
 
         <div className="bg-white rounded-xl shadow p-4">

@@ -1,8 +1,16 @@
 import MapView from "../components/MapView";
 import ErrorBoundary from "../components/ErrorBoundary";
 import CatchmentTabs from "../components/CatchmentTabs";
+import InsightsPanel from "../components/InsightsPanel";
+import { useState, useEffect } from "react";
 
 export default function CatchmentMapPage() {
+  const [mode, setMode] = useState<"catchments" | "dams">("catchments");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedId(null);
+  }, [mode]);
   return (
     <div className="p-6 space-y-6">
 
@@ -23,7 +31,11 @@ export default function CatchmentMapPage() {
 
           <ErrorBoundary>
             <div className="h-[500px]">
-              <MapView />
+              <MapView
+                mode={mode}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
             </div>
           </ErrorBoundary>
 
@@ -60,13 +72,12 @@ export default function CatchmentMapPage() {
       </div>
 
       {/* 🔹 INFO PANEL */}
-      <div className="bg-white rounded-xl shadow p-4">
-        <h2 className="text-lg font-semibold">Catchment Insights</h2>
-        <p className="text-slate-500 text-sm">
-          This panel will display detailed analytics for selected catchments,
-          including predicted discharge, historical comparison, and anomaly detection.
-        </p>
-      </div>
+      <InsightsPanel
+        mode={mode}
+        setMode={setMode}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+      />
 
     </div>
   );

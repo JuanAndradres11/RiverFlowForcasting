@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { catchments, dams } from "../data/mapData";
+import { useState, useEffect, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -14,76 +15,60 @@ import L from "leaflet";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-// Fix marker icon issue
 L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
 });
 
-// 🌍 Cauvery bounds
 const cauveryBounds: [[number, number], [number, number]] = [
   [10.15, 75.45],
   [13.5, 79.9],
 ];
 
-// 📍 Catchments
-const catchments = [
-  { id: 1, name: "Upper Cauvery", coords: [12.2, 76.0] },
-  { id: 2, name: "Kabini Basin", coords: [11.9, 76.2] },
-  { id: 3, name: "Hemavathi", coords: [12.0, 76.4] },
-  { id: 4, name: "Lower Basin", coords: [10.8, 78.8] },
-];
+// 🌊 Flow label
+function getFlowLabel(flow: number) {
+  if (flow > 80) return "High Flow";
+  if (flow > 50) return "Moderate Flow";
+  return "Low Flow";
+}
 
-// 🏗️ Dams
-const dams = [
-  { id: 1, name: "Krishna Raja Sagara", coords: [12.42, 76.57] },
-  { id: 2, name: "Mettur Dam", coords: [11.8, 77.8] },
-];
-
-export default function MapView() {
-  const [showCatchments, setShowCatchments] = useState(true);
-  const [showDams, setShowDams] = useState(false);
+export default function MapView({ mode, selectedId, onSelect }: any) {
   const [riverData, setRiverData] = useState<any>(null);
+  const mapRef = useRef<any>(null);
 
-  // 🚀 Load GeoJSON
+  // 🚀 Load river
   useEffect(() => {
     fetch("src/data/cauvery_clean.geojson")
       .then((res) => res.json())
-      .then((data) => {
-        console.log("✅ River loaded:", data);
-        setRiverData(data);
-      })
-      .catch((err) => {
-        console.error("❌ Failed to load GeoJSON:", err);
-      });
+      .then(setRiverData)
+      .catch(console.error);
   }, []);
 
+  // 🎯 Zoom to selected
+  useEffect(() => {
+    if (!selectedId || !mapRef.current) return;
+
+    const data = mode === "catchments" ? catchments : dams;
+    const selected = data.find((d) => d.id === selectedId);
+
+    if (selected) {
+      mapRef.current.flyTo([selected.lat, selected.lng], 9);
+    }
+  }, [selectedId, mode]);
+
+  // ✅ FILTER DATA (THIS FIXES YOUR MAIN ISSUE)
+  const visibleCatchments = selectedId
+    ? catchments.filter((c) => c.id === selectedId)
+    : catchments;
+
+  const visibleDams = selectedId
+    ? dams.filter((d) => d.id === selectedId)
+    : dams;
+
   return (
-    <div className="space-y-3">
-
-      {/* 🔘 Controls */}
-      <div className="flex gap-4 text-sm">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={showCatchments}
-            onChange={() => setShowCatchments(!showCatchments)}
-          />
-          Catchments
-        </label>
-
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={showDams}
-            onChange={() => setShowDams(!showDams)}
-          />
-          Dams
-        </label>
-      </div>
-
-      {/* 🗺️ Map */}
+    <div>
       <MapContainer
+        whenCreated={(map) => (mapRef.current = map)}
         bounds={cauveryBounds}
         maxBounds={cauveryBounds}
         maxBoundsViscosity={1.0}
@@ -93,7 +78,7 @@ export default function MapView() {
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        {/* 🌊 REAL River */}
+        {/* 🌊 River */}
         {riverData && (
           <GeoJSON
             data={riverData}
@@ -106,24 +91,87 @@ export default function MapView() {
         )}
 
         {/* 📍 Catchments */}
-        {showCatchments &&
-          catchments.map((c) => (
-            <Marker key={c.id} position={c.coords as [number, number]}>
-              <Popup>
-                <strong>{c.name}</strong>
-              </Popup>
-            </Marker>
-          ))}
+        {mode === "catchments" &&
+          visibleCatchments.map((c) => {
+            const isSelected = selectedId === c.id;
+
+            const icon = L.divIcon({
+              className: "",
+              html: `<div style="
+                width: 28px;
+                height: 28px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              ">
+                <div class="marker-dot ${isSelected ? "selected" : ""}"></div>
+              </div>`,
+            });
+
+            return (
+              <Marker
+                key={c.id}
+                position={[c.lat, c.lng]}
+                icon={icon}
+                eventHandlers={{
+                  click: () => onSelect(c.id),
+                }}
+                ref={(ref) => {
+                  if (ref && isSelected) {
+                    setTimeout(() => ref.openPopup(), 100);
+                  }
+                }}
+              >
+                <Popup>
+                  <strong>{c.name}</strong> <br />
+                  📍 {c.lat}, {c.lng} <br />
+                  🌊 {c.prediction} m³/s <br />
+                  ⚠️ {getFlowLabel(c.prediction)}
+                </Popup>
+              </Marker>
+            );
+          })}
 
         {/* 🏗️ Dams */}
-        {showDams &&
-          dams.map((d) => (
-            <Marker key={d.id} position={d.coords as [number, number]}>
-              <Popup>
-                <strong>{d.name}</strong>
-              </Popup>
-            </Marker>
-          ))}
+        {mode === "dams" &&
+          visibleDams.map((d) => {
+            const isSelected = selectedId === d.id;
+
+            const icon = L.divIcon({
+              className: "",
+              html: `<div style="
+                width: 28px;
+                height: 28px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              ">
+                <div class="marker-dot ${isSelected ? "selected" : ""}"></div>
+              </div>`,
+            });
+
+            return (
+              <Marker
+                key={d.id}
+                position={[d.lat, d.lng]}
+                icon={icon}
+                eventHandlers={{
+                  click: () => onSelect(d.id),
+                }}
+                ref={(ref) => {
+                  if (ref && isSelected) {
+                    setTimeout(() => ref.openPopup(), 100);
+                  }
+                }}
+              >
+                <Popup>
+                  <strong>{d.name}</strong> <br />
+                  📍 {d.lat}, {d.lng} <br />
+                  🚧 {d.description}
+                </Popup>
+              </Marker>
+            );
+          })}
       </MapContainer>
     </div>
   );

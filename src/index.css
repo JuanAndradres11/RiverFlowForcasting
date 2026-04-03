@@ -2,10 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-/* your custom stuff below */
+/* 🔹 Base resets */
 @layer base {
   body {
     margin: 0;
     padding: 0;
+  }
+}
+
+/* 🔹 Map marker styles */
+@layer components {
+  .marker-dot {
+    width: 10px;
+    height: 10px;
+    background: #3b82f6;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 10px rgba(59,130,246,0.8);
+    transition: transform 0.2s ease;
+  }
+
+  .marker-dot:hover {
+    transform: scale(1.4);
+  }
+
+  .marker-dot.selected {
+    transform: scale(1.6);
+  }
+
+  /* 🔸 Dam marker (optional but clean separation) */
+  .dam-dot {
+    width: 12px;
+    height: 12px;
+    background: #f97316;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 10px rgba(249,115,22,0.8);
+    transition: transform 0.2s ease;
+  }
+
+  .dam-dot:hover {
+    transform: scale(1.4);
+  }
+
+  .dam-dot.selected {
+    transform: scale(1.6);
   }
 }
